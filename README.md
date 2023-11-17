@@ -32,6 +32,14 @@
 $ yarn install
 ```
 
+## Prerequisites
+
+```bash
+# Database
+$ docker compose -f ./docker-compose.yaml up
+
+```
+
 ## Running the app
 
 ```bash

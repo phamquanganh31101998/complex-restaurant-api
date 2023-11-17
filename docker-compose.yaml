@@ -1,0 +1,12 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=complex-restaurant-database
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    ports:
+      - 3306:3306
+    volumes:
+      - ./.database:/var/lib/mysql
+    restart: on-failure
