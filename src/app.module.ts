@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { StorageModule } from 'storage/storage.module';
 import { RedisModule } from 'redis/redis.module';
 import { RedisService } from 'redis/redis.service';
+import { StaffModule } from './staff/staff.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { RedisService } from 'redis/redis.service';
         };
       },
     }),
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [AppService],
