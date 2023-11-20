@@ -5,11 +5,13 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
 } from '@nestjs/common';
+import { IApiResponse } from 'common/interfaces/response.interface';
+import { Staff } from 'storage/entities/Staff.entity';
 import { StaffService } from './staff.service';
-import { IApiResponse } from '../common/interfaces/response.interface';
-import { Staff } from '../storage/entities/Staff.entity';
 import { CreateStaffDto } from './dtos/create-staff.dto';
+import { UpdateStaffDto } from './dtos/update-staff.dto';
 
 @Controller('staff')
 export class StaffController {
@@ -42,6 +44,19 @@ export class StaffController {
     @Body() body: CreateStaffDto,
   ): Promise<IApiResponse<Staff>> {
     const staff = await this.staffService.createStaff(body);
+    return {
+      code: 200,
+      message: 'Success!',
+      data: staff,
+    };
+  }
+
+  @Put('/:id')
+  async updateStaffById(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateStaffDto,
+  ): Promise<IApiResponse<Staff>> {
+    const staff = await this.staffService.updateStaffById(id, body);
     return {
       code: 200,
       message: 'Success!',
