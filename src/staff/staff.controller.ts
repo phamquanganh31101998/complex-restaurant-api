@@ -6,24 +6,31 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import { IApiResponse } from 'common/interfaces/response.interface';
+import {
+  IApiListResponse,
+  IApiResponse,
+} from 'common/interfaces/response.interface';
 import { Staff } from 'storage/entities/Staff.entity';
 import { StaffService } from './staff.service';
 import { CreateStaffDto } from './dtos/create-staff.dto';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
+import { GetStaffListDto } from './dtos/get-staff-list.dto';
 
 @Controller('staff')
 export class StaffController {
   constructor(private staffService: StaffService) {}
 
   @Get()
-  async getAllStaff(): Promise<IApiResponse<Staff[]>> {
-    const staffList = await this.staffService.getAllStaff();
+  async getStaffList(
+    @Query() getStaffListDto: GetStaffListDto,
+  ): Promise<IApiListResponse<Staff[]>> {
+    const result = await this.staffService.getStaffList(getStaffListDto);
     return {
       code: 200,
-      message: 'Get staff list success!',
-      data: staffList,
+      message: 'Success!',
+      result,
     };
   }
 
@@ -35,7 +42,7 @@ export class StaffController {
     return {
       code: 200,
       message: 'Success!',
-      data: staff,
+      result: staff,
     };
   }
 
@@ -47,7 +54,7 @@ export class StaffController {
     return {
       code: 200,
       message: 'Success!',
-      data: staff,
+      result: staff,
     };
   }
 
@@ -60,7 +67,7 @@ export class StaffController {
     return {
       code: 200,
       message: 'Success!',
-      data: staff,
+      result: staff,
     };
   }
 }

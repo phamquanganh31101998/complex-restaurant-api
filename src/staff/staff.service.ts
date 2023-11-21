@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Staff } from 'storage/entities/Staff.entity';
-import { Repository } from 'typeorm';
+import { Repository, Like, FindManyOptions } from 'typeorm';
 import { CreateStaffDto } from './dtos/create-staff.dto';
 import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { StaffNotFoundException } from './exceptions';
+import { GetStaffListDto } from './dtos/get-staff-list.dto';
+import { GetStaffListResult } from './interfaces';
 
 @Injectable()
 export class StaffService {
@@ -12,8 +14,31 @@ export class StaffService {
     @InjectRepository(Staff) private staffRepository: Repository<Staff>,
   ) {}
 
-  async getAllStaff(): Promise<Staff[]> {
-    return await this.staffRepository.find({ withDeleted: false });
+  async getStaffList(
+    getStaffListDto: GetStaffListDto,
+  ): Promise<GetStaffListResult> {
+    const { page = 1, pageSize = 10, name = '' } = getStaffListDto;
+    let condition: FindManyOptions<Staff> = {};
+
+    if (!!name) {
+      condition = { ...condition, where: { name: Like(`%${name}%`) } };
+    }
+
+    const [staffList, total] = await this.staffRepository.findAndCount({
+      ...condition,
+      withDeleted: false,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+
+    return {
+      pagination: {
+        page,
+        pageSize,
+        total,
+      },
+      dataList: staffList,
+    };
   }
 
   async getStaffById(id: number): Promise<Staff> {
