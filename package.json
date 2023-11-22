@@ -1,7 +1,7 @@
 {
   "name": "complex-restaurant-api",
   "version": "0.0.1",
-  "description": "",
+  "description": "API for my restaurant",
   "author": "Quang Anh",
   "private": true,
   "license": "MIT",
