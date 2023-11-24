@@ -7,11 +7,12 @@ import { StorageModule } from 'storage/storage.module';
 import { RedisModule } from 'redis/redis.module';
 import { RedisService } from 'redis/redis.service';
 import { StaffModule } from './staff/staff.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: '.env',
+      envFilePath: ['.env', '.example.env'],
       cache: true,
       isGlobal: true,
     }),
@@ -29,13 +30,14 @@ import { StaffModule } from './staff/staff.module';
             attempts: 3,
             backoff: {
               type: 'fixed',
-              delay: 5 * 60000, // in milliseconds
+              delay: 60000, // in milliseconds
             },
           },
         };
       },
     }),
     StaffModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

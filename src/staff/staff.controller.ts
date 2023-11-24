@@ -11,7 +11,7 @@ import {
 import {
   IApiListResponse,
   IApiResponse,
-} from 'common/interfaces/response.interface';
+} from 'shared/interfaces/response.interface';
 import { Staff } from 'storage/entities/Staff.entity';
 import { StaffService } from './staff.service';
 import { CreateStaffDto } from './dtos/create-staff.dto';

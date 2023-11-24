@@ -1,4 +1,4 @@
-import { CommonException } from 'common/exception';
+import { CommonException } from 'shared/exception';
 
 export class StaffException extends CommonException {}
 

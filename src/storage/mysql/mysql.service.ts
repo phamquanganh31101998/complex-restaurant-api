@@ -2,7 +2,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import { Injectable } from '@nestjs/common';
 import { TypeOrmModuleOptions, TypeOrmOptionsFactory } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { EnvKey } from 'common/constants/env-key.constant';
+import { EnvKey } from 'shared/constants/env-key.constant';
 
 @Injectable()
 export class MysqlService implements TypeOrmOptionsFactory {
