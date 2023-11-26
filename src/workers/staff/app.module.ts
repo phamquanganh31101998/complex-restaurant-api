@@ -4,7 +4,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { StorageModule } from 'storage/storage.module';
 import { RedisModule } from 'redis/redis.module';
 import { RedisService } from 'redis/redis.service';
-import { QueueName } from 'shared/interfaces/queue.interface';
+import { QueueName } from 'shared/constants/queue.constant';
+import { AppProcessor } from './app.processor';
 
 @Module({
   imports: [
@@ -26,5 +27,6 @@ import { QueueName } from 'shared/interfaces/queue.interface';
     }),
     BullModule.registerQueue({ name: QueueName.STAFF }),
   ],
+  providers: [AppProcessor],
 })
 export class AppModule {}

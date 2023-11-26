@@ -10,16 +10,15 @@ import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { StaffNotFoundException } from './exceptions';
 import { GetStaffListDto } from './dtos/get-staff-list.dto';
 import { GetStaffListResult } from './interfaces';
-import { JobName, QueueName } from '../shared/interfaces/queue.interface';
+import { JobName, QueueName } from '../shared/constants/queue.constant';
 import { Cron } from '@nestjs/schedule';
 import { EnvKey } from '../shared/constants/env-key.constant';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
 
-const getCronTime = (): string => {
+const getCronCalculateCheckInTime = (): string => {
   dotenv.config();
-
   return process.env[EnvKey.STAFF_CHECK_IN_SUMMARY_CALCULATION_CRON_TIME];
 };
 
@@ -31,7 +30,7 @@ export class StaffService {
   ) {}
 
   // add cronjob daily to calculate check in time of staff
-  @Cron(getCronTime())
+  @Cron(getCronCalculateCheckInTime())
   async addCheckInCalculationJob() {
     await this.staffQueue.add(
       JobName.STAFF_CHECK_IN_SUMMARY_CALCULATION,

@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { StorageModule } from 'storage/storage.module';
 import { StaffController } from './staff.controller';
 import { StaffService } from './staff.service';
-import { QueueName } from '../shared/interfaces/queue.interface';
+import { QueueName } from '../shared/constants/queue.constant';
 
 @Module({
   imports: [
