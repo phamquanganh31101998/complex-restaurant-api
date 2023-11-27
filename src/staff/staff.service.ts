@@ -10,13 +10,15 @@ import { UpdateStaffDto } from './dtos/update-staff.dto';
 import { StaffNotFoundException } from './exceptions';
 import { GetStaffListDto } from './dtos/get-staff-list.dto';
 import { GetStaffListResult } from './interfaces';
-import { JobName, QueueName } from '../shared/constants/queue.constant';
+import { JobName, QueueName } from 'shared/constants/queue.constant';
 import { Cron } from '@nestjs/schedule';
-import { EnvKey } from '../shared/constants/env-key.constant';
+import { EnvKey } from 'shared/constants/env-key.constant';
+import { RedisService } from 'redis/redis.service';
+
+const REDIS_CHECK_IN_PREFIX = 'check-in';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
-
 const getCronCalculateCheckInTime = (): string => {
   dotenv.config();
   return process.env[EnvKey.STAFF_CHECK_IN_SUMMARY_CALCULATION_CRON_TIME];
@@ -27,6 +29,7 @@ export class StaffService {
   constructor(
     @InjectRepository(Staff) private staffRepository: Repository<Staff>,
     @InjectQueue(QueueName.STAFF) private staffQueue: Queue,
+    private redisService: RedisService,
   ) {}
 
   // add cronjob daily to calculate check in time of staff
@@ -89,5 +92,29 @@ export class StaffService {
     }
 
     return this.staffRepository.save({ ...staff, ...updateStaffDto });
+  }
+
+  // Temporary write to redis to avoid unnecessary queries to Database
+  // Then summary this data later
+  async checkInForStaff(id: number) {
+    const now = new Date().toISOString();
+    const key = `${REDIS_CHECK_IN_PREFIX}:${id}`;
+
+    const isExisted = await this.redisService.redis.exists(
+      `${REDIS_CHECK_IN_PREFIX}:${id}`,
+    );
+
+    if (!isExisted) {
+      await this.redisService.redis.set(key, JSON.stringify([now]));
+    } else {
+      const currentCheckInData = JSON.parse(
+        await this.redisService.redis.get(key),
+      );
+
+      await this.redisService.redis.set(
+        key,
+        JSON.stringify([...currentCheckInData, now]),
+      );
+    }
   }
 }

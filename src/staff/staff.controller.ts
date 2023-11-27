@@ -70,4 +70,16 @@ export class StaffController {
       result: staff,
     };
   }
+
+  @Post('/check-in/:id')
+  async checkInForStaff(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<IApiResponse<null>> {
+    await this.staffService.checkInForStaff(id);
+    return {
+      code: 200,
+      message: 'Success!',
+      result: null,
+    };
+  }
 }
