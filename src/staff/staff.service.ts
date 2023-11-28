@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Staff } from 'storage/entities/Staff.entity';
 import { Repository, Like, FindManyOptions } from 'typeorm';
@@ -14,8 +14,7 @@ import { JobName, QueueName } from 'shared/constants/queue.constant';
 import { Cron } from '@nestjs/schedule';
 import { EnvKey } from 'shared/constants/env-key.constant';
 import { RedisService } from 'redis/redis.service';
-
-const REDIS_CHECK_IN_PREFIX = 'check-in';
+import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
@@ -25,12 +24,24 @@ const getCronCalculateCheckInTime = (): string => {
 };
 
 @Injectable()
-export class StaffService {
+export class StaffService implements OnModuleInit {
+  private staffIdList: number[] = [];
+
   constructor(
     @InjectRepository(Staff) private staffRepository: Repository<Staff>,
     @InjectQueue(QueueName.STAFF) private staffQueue: Queue,
     private redisService: RedisService,
   ) {}
+
+  // Prefetch list of staff ids to be more convenient for action
+  async onModuleInit() {
+    await this.prefetchStaffIdList();
+  }
+
+  async prefetchStaffIdList() {
+    const staffList = await this.staffRepository.find({ withDeleted: false });
+    this.staffIdList = staffList.map((staff) => staff.id);
+  }
 
   // add cronjob daily to calculate check in time of staff
   @Cron(getCronCalculateCheckInTime())
@@ -39,7 +50,7 @@ export class StaffService {
       JobName.STAFF_CHECK_IN_SUMMARY_CALCULATION,
       {},
       {
-        jobId: new Date().toISOString(),
+        jobId: new Date().toLocaleDateString(),
       },
     );
   }
@@ -78,7 +89,12 @@ export class StaffService {
   }
 
   async createStaff(payload: CreateStaffDto): Promise<Staff> {
-    return this.staffRepository.save({ name: payload.name });
+    const newStaff = this.staffRepository.save({ name: payload.name });
+
+    // update current staff list
+    await this.prefetchStaffIdList();
+
+    return newStaff;
   }
 
   async updateStaffById(
@@ -95,9 +111,13 @@ export class StaffService {
   }
 
   // Temporary write to redis to avoid unnecessary queries to Database
-  // Then summary this data later
+  // Then summarize this data later
   async checkInForStaff(id: number) {
-    const now = new Date().toISOString();
+    if (!this.staffIdList.includes(id)) {
+      throw new StaffNotFoundException('Cannot find staff with this id');
+    }
+
+    const now = new Date().getTime();
     const key = `${REDIS_CHECK_IN_PREFIX}:${id}`;
 
     const isExisted = await this.redisService.redis.exists(
@@ -106,15 +126,16 @@ export class StaffService {
 
     if (!isExisted) {
       await this.redisService.redis.set(key, JSON.stringify([now]));
-    } else {
-      const currentCheckInData = JSON.parse(
-        await this.redisService.redis.get(key),
-      );
-
-      await this.redisService.redis.set(
-        key,
-        JSON.stringify([...currentCheckInData, now]),
-      );
+      return;
     }
+
+    const currentCheckInData = JSON.parse(
+      await this.redisService.redis.get(key),
+    );
+
+    await this.redisService.redis.set(
+      key,
+      JSON.stringify([...currentCheckInData, now]),
+    );
   }
 }

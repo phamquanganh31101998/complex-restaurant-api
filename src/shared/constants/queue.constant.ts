@@ -7,3 +7,7 @@ export enum QueueName {
 export enum JobName {
   STAFF_CHECK_IN_SUMMARY_CALCULATION = 'staff-check-in-summary-calculation',
 }
+
+export interface StaffJobDataType {
+  date?: string;
+}
