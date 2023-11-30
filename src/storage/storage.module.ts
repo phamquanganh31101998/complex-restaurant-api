@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MysqlService } from './mysql/mysql.service';
 import { Staff } from './entities/Staff.entity';
+import { StaffCheckin } from './entities/Staff-Checkin.entity';
 
 @Module({
   providers: [MysqlService],
@@ -15,6 +16,6 @@ export class StorageModule {
   }
 
   static getMySQLModule(): DynamicModule {
-    return TypeOrmModule.forFeature([Staff]);
+    return TypeOrmModule.forFeature([Staff, StaffCheckin]);
   }
 }

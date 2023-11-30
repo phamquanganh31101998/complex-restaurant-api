@@ -18,7 +18,7 @@ export class StaffCheckin {
   @ManyToOne(() => Staff)
   staff: Staff;
 
-  // format: 01-01-2023
+  // format: 2023-11-30
   @Column({ length: 10, nullable: false })
   @Index('idx_check_in_date')
   date: string;

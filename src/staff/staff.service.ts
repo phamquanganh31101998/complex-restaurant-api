@@ -15,6 +15,7 @@ import { Cron } from '@nestjs/schedule';
 import { EnvKey } from 'shared/constants/env-key.constant';
 import { RedisService } from 'redis/redis.service';
 import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
+import { getDateStr } from 'shared/helpers/datetime';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
@@ -47,10 +48,10 @@ export class StaffService implements OnModuleInit {
   @Cron(getCronCalculateCheckInTime())
   async addCheckInCalculationJob() {
     await this.staffQueue.add(
-      JobName.STAFF_CHECK_IN_SUMMARY_CALCULATION,
+      JobName.STAFF_CHECK_IN_SUMMARY_DAILY,
       {},
       {
-        jobId: new Date().toLocaleDateString(),
+        jobId: getDateStr(new Date()),
       },
     );
   }
@@ -117,15 +118,13 @@ export class StaffService implements OnModuleInit {
       throw new StaffNotFoundException('Cannot find staff with this id');
     }
 
-    const now = new Date().getTime();
-    const key = `${REDIS_CHECK_IN_PREFIX}:${id}`;
+    const now = new Date();
+    const key = `${REDIS_CHECK_IN_PREFIX}:${getDateStr(now)}:${id}`;
 
-    const isExisted = await this.redisService.redis.exists(
-      `${REDIS_CHECK_IN_PREFIX}:${id}`,
-    );
+    const isExisted = await this.redisService.redis.exists(key);
 
     if (!isExisted) {
-      await this.redisService.redis.set(key, JSON.stringify([now]));
+      await this.redisService.redis.set(key, JSON.stringify([now.getTime()]));
       return;
     }
 
@@ -135,7 +134,7 @@ export class StaffService implements OnModuleInit {
 
     await this.redisService.redis.set(
       key,
-      JSON.stringify([...currentCheckInData, now]),
+      JSON.stringify([...currentCheckInData, now.getTime()]),
     );
   }
 }

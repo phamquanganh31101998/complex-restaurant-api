@@ -5,7 +5,7 @@ export enum QueueName {
 
 // specific tasks
 export enum JobName {
-  STAFF_CHECK_IN_SUMMARY_CALCULATION = 'staff-check-in-summary-calculation',
+  STAFF_CHECK_IN_SUMMARY_DAILY = 'staff-check-in-summary-daily',
 }
 
 export interface StaffJobDataType {
