@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Staff } from 'storage/entities/Staff.entity';
 import { Repository, Like, FindManyOptions } from 'typeorm';
@@ -25,7 +25,8 @@ const getCronCalculateCheckInTime = (): string => {
 };
 
 @Injectable()
-export class StaffService implements OnModuleInit {
+export class StaffService {
+  private logger = new Logger(StaffService.name);
   private staffIdList: number[] = [];
 
   constructor(
@@ -34,12 +35,10 @@ export class StaffService implements OnModuleInit {
     private redisService: RedisService,
   ) {}
 
-  // Prefetch list of staff ids to be more convenient for action
-  async onModuleInit() {
-    await this.prefetchStaffIdList();
-  }
-
+  // Prefetch list of staff ids to be more convenient for actions need verify staff id
+  @Cron('*/5 * * * *')
   async prefetchStaffIdList() {
+    this.logger.verbose('Prefetching staff id list...');
     const staffList = await this.staffRepository.find({ withDeleted: false });
     this.staffIdList = staffList.map((staff) => staff.id);
   }
@@ -84,6 +83,10 @@ export class StaffService implements OnModuleInit {
   }
 
   async getStaffById(id: number): Promise<Staff> {
+    if (!this.staffIdList.includes(id)) {
+      throw new StaffNotFoundException('Cannot find staff with this id');
+    }
+
     return await this.staffRepository.findOneBy({
       id,
     });
@@ -102,11 +105,11 @@ export class StaffService implements OnModuleInit {
     id: number,
     updateStaffDto: UpdateStaffDto,
   ): Promise<Staff> {
-    const staff = await this.staffRepository.findOneBy({ id });
-
-    if (!staff) {
+    if (!this.staffIdList.includes(id)) {
       throw new StaffNotFoundException('Cannot find staff with this id');
     }
+
+    const staff = await this.staffRepository.findOneBy({ id });
 
     return this.staffRepository.save({ ...staff, ...updateStaffDto });
   }
