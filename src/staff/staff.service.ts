@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Staff } from 'storage/entities/Staff.entity';
 import { Repository, Like, FindManyOptions } from 'typeorm';
@@ -15,7 +15,10 @@ import { Cron } from '@nestjs/schedule';
 import { EnvKey } from 'shared/constants/env-key.constant';
 import { RedisService } from 'redis/redis.service';
 import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
-import { getDateStr } from 'shared/helpers/datetime';
+import {
+  getDateFromDateObj,
+  getTimeFromDateObj,
+} from 'shared/helpers/datetime';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
@@ -25,7 +28,7 @@ const getCronCalculateCheckInTime = (): string => {
 };
 
 @Injectable()
-export class StaffService {
+export class StaffService implements OnModuleInit {
   private logger = new Logger(StaffService.name);
   private staffIdList: number[] = [];
 
@@ -34,6 +37,10 @@ export class StaffService {
     @InjectQueue(QueueName.STAFF) private staffQueue: Queue,
     private redisService: RedisService,
   ) {}
+
+  async onModuleInit() {
+    await this.prefetchStaffIdList();
+  }
 
   // Prefetch list of staff ids to be more convenient for actions need verify staff id
   @Cron('*/5 * * * *')
@@ -50,7 +57,7 @@ export class StaffService {
       JobName.STAFF_CHECK_IN_SUMMARY_DAILY,
       {},
       {
-        jobId: getDateStr(new Date()),
+        jobId: getDateFromDateObj(new Date()),
       },
     );
   }
@@ -122,22 +129,25 @@ export class StaffService {
     }
 
     const now = new Date();
-    const key = `${REDIS_CHECK_IN_PREFIX}:${getDateStr(now)}:${id}`;
+    const key = `${REDIS_CHECK_IN_PREFIX}:${getDateFromDateObj(now)}:${id}`;
 
     const isExisted = await this.redisService.redis.exists(key);
 
     if (!isExisted) {
-      await this.redisService.redis.set(key, JSON.stringify([now.getTime()]));
+      await this.redisService.redis.set(
+        key,
+        JSON.stringify([getTimeFromDateObj(now)]),
+      );
       return;
     }
 
-    const currentCheckInData = JSON.parse(
+    const currentCheckinData = JSON.parse(
       await this.redisService.redis.get(key),
     );
 
     await this.redisService.redis.set(
       key,
-      JSON.stringify([...currentCheckInData, now.getTime()]),
+      JSON.stringify([...currentCheckinData, getTimeFromDateObj(now)]),
     );
   }
 }

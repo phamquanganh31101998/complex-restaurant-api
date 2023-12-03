@@ -3,18 +3,24 @@ import { Logger } from '@nestjs/common';
 import {
   JobName,
   QueueName,
-  StaffJobData,
   StaffJobDataType,
 } from 'shared/constants/queue.constant';
 import { Job } from 'bullmq';
 import { RedisService } from 'redis/redis.service';
 import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
+import { InjectRepository } from '@nestjs/typeorm';
+import { StaffCheckin } from '../../storage/entities/Staff-Checkin.entity';
+import { Repository } from 'typeorm';
 
 @Processor(QueueName.STAFF)
 export class AppProcessor extends WorkerHost {
   logger = new Logger(AppProcessor.name);
 
-  constructor(private redisService: RedisService) {
+  constructor(
+    private redisService: RedisService,
+    @InjectRepository(StaffCheckin)
+    private staffCheckInRepository: Repository<StaffCheckin>,
+  ) {
     super();
   }
 
@@ -24,8 +30,8 @@ export class AppProcessor extends WorkerHost {
         `Processing job with name: ${job.name}, id: ${job.id}`,
       );
       switch (job.name) {
-        case JobName.STAFF_CHECK_IN_SUMMARY_CALCULATION:
-          await this.summarizeCheckInTimeDaily(job);
+        case JobName.STAFF_CHECK_IN_SUMMARY_DAILY:
+          await this.summarizeCheckinTimeDaily(job);
           break;
         default:
           this.logger.error('unknown job');
@@ -34,36 +40,87 @@ export class AppProcessor extends WorkerHost {
       this.logger.error(`Job ${job.id} failed with error:`);
       this.logger.error(e);
 
-      // throw error announcing bullmq to retry this job
+      // throw error to announce BullMQ to retry this job
       throw e;
     }
   }
 
-  async summarizeCheckInTimeDaily(job: Job<StaffJobDataType, void, JobName>) {
-    // key format check-in:[id]
-    const allCheckInData = await this.redisService.redis.keys(
-      `*${REDIS_CHECK_IN_PREFIX}*`,
+  async summarizeCheckinTimeDaily(job: Job<StaffJobDataType, void, JobName>) {
+    // key format: check-in:[2023-12-03]:[id]
+    const date = job.id;
+    const allRedisCheckinData = await this.redisService.redis.keys(
+      `*${REDIS_CHECK_IN_PREFIX}:${date}*`,
     );
 
-    const date = job.data.date as string;
-    const idToCheckInDataMapping = new Map<number, [Date, Date]>();
+    const checkinDataList: ICheckinData[] = [];
 
     // prepare data
-    for (const key of allCheckInData) {
-      const checkInData: string[] = JSON.parse(
+    for (const key of allRedisCheckinData) {
+      const redisCheckinData: string[] = JSON.parse(
         await this.redisService.redis.get(key),
       );
 
-      const id = parseInt(key.split(':')[1]);
+      const id = parseInt(key.split(':')[2]);
 
-      const checkInTime = checkInData[0] ?? null;
-      const checkOutTime =
-        checkInData.length > 1 ? checkInData[checkInData.length - 1] : null;
-
-      idToCheckInDataMapping.set(id, [
-        new Date(checkInTime),
-        new Date(checkOutTime),
-      ]);
+      checkinDataList.push({
+        redisKey: key,
+        staffId: id,
+        date,
+        checkinTimeArr: redisCheckinData,
+      });
     }
+
+    const redisTransaction = this.redisService.redis.multi();
+
+    // function handle update to DB and delete from Redis
+    const updateCheckinData = async (redisCheckinData: ICheckinData) => {
+      const { redisKey, staffId, date, checkinTimeArr } = redisCheckinData;
+      const currentCheckInData = await this.staffCheckInRepository.findOne({
+        where: {
+          staffId,
+          date,
+        },
+      });
+
+      // If staff has not checkin yet, store their checkin info
+      if (!currentCheckInData) {
+        const checkinTime = checkinTimeArr[0];
+        const checkoutTime =
+          checkinTimeArr.length > 1
+            ? checkinTimeArr[checkinTimeArr.length - 1]
+            : null;
+        await this.staffCheckInRepository.save({
+          staffId,
+          date,
+          checkinTime,
+          checkoutTime,
+        });
+      } else {
+        // otherwise, only change their checkout time
+        const checkoutTime = checkinTimeArr[checkinTimeArr.length - 1];
+
+        await this.staffCheckInRepository.save({
+          ...currentCheckInData,
+          checkoutTime,
+        });
+      }
+
+      redisTransaction.del(redisKey);
+    };
+
+    await Promise.allSettled(
+      checkinDataList.map((data) => updateCheckinData(data)),
+    );
+
+    await redisTransaction.exec();
+
+    this.logger.verbose(`Job with name: ${job.name}, id: ${job.id} success!`);
   }
+}
+
+interface ICheckinData {
+  redisKey: string;
+  staffId: number;
+  date: string;
+  checkinTimeArr: string[];
 }

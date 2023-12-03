@@ -1,9 +1,9 @@
 // format: 2023-11-30
-export const getDateStr = (input: Date): string => {
-  return `${input.getFullYear()}-${input.getMonth() + 1}-${input.getDate()}`;
+export const getDateFromDateObj = (input: Date): string => {
+  return input.toISOString().substring(0, 10);
 };
 
 // format: 18:00:00
-export const getTime = (input: Date): string => {
-  return `${input.getHours()}:${input.getMinutes()}:${input.getSeconds()}`;
+export const getTimeFromDateObj = (input: Date): string => {
+  return input.toISOString().substring(11, 19);
 };

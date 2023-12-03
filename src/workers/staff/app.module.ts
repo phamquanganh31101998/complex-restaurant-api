@@ -15,6 +15,7 @@ import { AppProcessor } from './app.processor';
       isGlobal: true,
     }),
     StorageModule.forRootAsync(),
+    StorageModule.getMySQLModule(),
     RedisModule,
     BullModule.forRootAsync({
       imports: [RedisModule],
