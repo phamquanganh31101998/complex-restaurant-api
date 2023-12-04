@@ -8,6 +8,7 @@ import { RedisModule } from 'redis/redis.module';
 import { RedisService } from 'redis/redis.service';
 import { StaffModule } from './staff/staff.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { GoogleWorkspaceModule } from './external/google-workspace/google-workspace.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     }),
     StaffModule,
     ScheduleModule.forRoot(),
+    GoogleWorkspaceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
