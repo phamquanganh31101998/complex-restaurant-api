@@ -39,3 +39,6 @@ lerna-debug.log*
 
 # DB
 .database
+
+# Google workspace credentials
+dotted*
