@@ -42,3 +42,4 @@ lerna-debug.log*
 
 # Google workspace credentials
 dotted*
+test-gg-drive.js
