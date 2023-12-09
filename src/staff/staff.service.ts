@@ -19,6 +19,7 @@ import {
   getDateFromDateObj,
   getTimeFromDateObj,
 } from 'shared/helpers/datetime';
+import { GoogleWorkspaceService } from 'external/google-workspace/google-workspace.service';
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
@@ -36,6 +37,7 @@ export class StaffService implements OnModuleInit {
     @InjectRepository(Staff) private staffRepository: Repository<Staff>,
     @InjectQueue(QueueName.STAFF) private staffQueue: Queue,
     private redisService: RedisService,
+    private googleWorkspaceService: GoogleWorkspaceService,
   ) {}
 
   async onModuleInit() {
