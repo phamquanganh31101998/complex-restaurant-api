@@ -25,7 +25,7 @@ import { GoogleWorkspaceService } from 'external/google-workspace/google-workspa
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
 const getCronCalculateCheckInTime = (): string => {
   dotenv.config();
-  return process.env[EnvKey.STAFF_CHECK_IN_SUMMARY_CALCULATION_CRON_TIME];
+  return process.env[EnvKey.STAFF_STORE_CHECKIN_INFO_CRON_TIME];
 };
 
 @Injectable()
@@ -54,9 +54,9 @@ export class StaffService implements OnModuleInit {
 
   // add cronjob daily to calculate check in time of staff
   @Cron(getCronCalculateCheckInTime())
-  async addCheckInCalculationJob() {
+  async addStoreCheckinInfoJob() {
     await this.staffQueue.add(
-      JobName.STAFF_CHECK_IN_SUMMARY_DAILY,
+      JobName.STAFF_STORE_CHECKIN_INFO,
       {},
       {
         jobId: getDateFromDateObj(new Date()),

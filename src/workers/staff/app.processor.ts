@@ -9,7 +9,7 @@ import { Job } from 'bullmq';
 import { RedisService } from 'redis/redis.service';
 import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
 import { InjectRepository } from '@nestjs/typeorm';
-import { StaffCheckin } from '../../storage/entities/Staff-Checkin.entity';
+import { StaffCheckin } from 'storage/entities/Staff-Checkin.entity';
 import { Repository } from 'typeorm';
 
 @Processor(QueueName.STAFF)
@@ -30,8 +30,8 @@ export class AppProcessor extends WorkerHost {
         `Processing job with name: ${job.name}, id: ${job.id}`,
       );
       switch (job.name) {
-        case JobName.STAFF_CHECK_IN_SUMMARY_DAILY:
-          await this.summarizeCheckinTimeDaily(job);
+        case JobName.STAFF_STORE_CHECKIN_INFO:
+          await this.storeCheckinInfo(job);
           break;
         default:
           this.logger.error('unknown job');
@@ -45,7 +45,9 @@ export class AppProcessor extends WorkerHost {
     }
   }
 
-  async summarizeCheckinTimeDaily(job: Job<StaffJobDataType, void, JobName>) {
+  // Process for every 5 minutes
+  // Write temporary checkin info from Redis to DB
+  async storeCheckinInfo(job: Job<StaffJobDataType, void, JobName>) {
     // key format: check-in:[2023-12-03]:[id]
     const date = job.id;
     const allRedisCheckinData = await this.redisService.redis.keys(
