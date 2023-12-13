@@ -21,6 +21,57 @@ export class GoogleWorkspaceService {
         ),
       );
 
-    return google.drive({ version: 'v3', auth });
+      const auth = new google.auth.GoogleAuth({
+        keyFile: keyFilePath,
+        scopes: SCOPES,
+      });
+
+      this.service = google.drive({ version: 'v3', auth });
+    }
+
+    return this.service;
+  }
+
+  // Test function
+  async listFile() {
+    try {
+      const service = await this.getGoogleWorkspaceService();
+      const res = await service.files.list({
+        q: "mimeType='application/vnd.google-apps.folder'",
+        fields: 'nextPageToken, files(id, name)',
+        spaces: 'drive',
+      });
+      console.log({ res: res.data.files });
+
+      return res.data.files;
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+  }
+
+  // Test function
+  async uploadFile() {
+    try {
+      const service = await this.getGoogleWorkspaceService();
+
+      const media = {
+        mimeType: 'text/csv',
+        body: 'test test',
+      };
+
+      const file = await service.files.create({
+        requestBody: {
+          name: 'My Report',
+          parents: ['19vkVhfepqeRjcKuaoFP-YyqL5MgbkdhT'],
+          mimeType: 'application/vnd.google-apps.spreadsheet',
+        },
+        media: media,
+      });
+      console.log({ file });
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
   }
 }
