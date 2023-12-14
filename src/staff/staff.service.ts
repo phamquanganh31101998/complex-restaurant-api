@@ -23,9 +23,9 @@ import { GoogleWorkspaceService } from 'external/google-workspace/google-workspa
 
 // can't either pass a value from config service to a decorators
 // https://stackoverflow.com/questions/69463692/nestjs-using-environment-configuration-on-cron-decorator
-const getCronCalculateCheckInTime = (): string => {
+const getCronTimeFromEnv = (cronEnvKey: EnvKey): string => {
   dotenv.config();
-  return process.env[EnvKey.STAFF_STORE_CHECKIN_INFO_CRON_TIME];
+  return process.env[cronEnvKey];
 };
 
 @Injectable()
@@ -44,7 +44,8 @@ export class StaffService implements OnModuleInit {
     await this.prefetchStaffIdList();
   }
 
-  // Prefetch list of staff ids to be more convenient for actions need verify staff id
+  // Prefetch list of staff ids to be more convenient for actions that need to verify staff id
+  // Avoid too many queries to database
   @Cron('*/5 * * * *')
   async prefetchStaffIdList() {
     this.logger.verbose('Prefetching staff id list...');
@@ -52,11 +53,23 @@ export class StaffService implements OnModuleInit {
     this.staffIdList = staffList.map((staff) => staff.id);
   }
 
-  // add cronjob daily to calculate check in time of staff
-  @Cron(getCronCalculateCheckInTime())
+  // add cronjob to write checkin info from Redis to Database
+  @Cron(getCronTimeFromEnv(EnvKey.STAFF_STORE_CHECKIN_INFO_CRON_TIME))
   async addStoreCheckinInfoJob() {
     await this.staffQueue.add(
       JobName.STAFF_STORE_CHECKIN_INFO,
+      {},
+      {
+        jobId: getDateFromDateObj(new Date()),
+      },
+    );
+  }
+
+  // add cronjob daily to calculate check in time of staff
+  @Cron(getCronTimeFromEnv(EnvKey.STAFF_EXPORT_CHECKIN_INFO_DAILY))
+  async addExportCheckinInfoDailyJob() {
+    await this.staffQueue.add(
+      JobName.STAFF_EXPORT_CHECKIN_INFO_DAILY,
       {},
       {
         jobId: getDateFromDateObj(new Date()),

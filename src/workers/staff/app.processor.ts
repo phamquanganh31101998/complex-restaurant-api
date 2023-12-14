@@ -33,6 +33,9 @@ export class AppProcessor extends WorkerHost {
         case JobName.STAFF_STORE_CHECKIN_INFO:
           await this.storeCheckinInfo(job);
           break;
+        case JobName.STAFF_EXPORT_CHECKIN_INFO_DAILY:
+          await this.exportCheckinDataDaily(job);
+          break;
         default:
           this.logger.error('unknown job');
       }
@@ -48,7 +51,6 @@ export class AppProcessor extends WorkerHost {
   // Process for every 5 minutes
   // Write temporary checkin info from Redis to DB
   async storeCheckinInfo(job: Job<StaffJobDataType, void, JobName>) {
-    // key format: check-in:[2023-12-03]:[id]
     const date = job.id;
     const allRedisCheckinData = await this.redisService.redis.keys(
       `*${REDIS_CHECK_IN_PREFIX}:${date}*`,
@@ -62,6 +64,7 @@ export class AppProcessor extends WorkerHost {
         await this.redisService.redis.get(key),
       );
 
+      // key format: check-in:[2023-12-03]:[staff-id]
       const id = parseInt(key.split(':')[2]);
 
       checkinDataList.push({
@@ -116,6 +119,12 @@ export class AppProcessor extends WorkerHost {
 
     await redisTransaction.exec();
 
+    this.logger.verbose(`Job with name: ${job.name}, id: ${job.id} success!`);
+  }
+
+  // Process at 23:00 every day
+  // Export to Google Sheet and upload to Google Drive
+  async exportCheckinDataDaily(job: Job<StaffJobDataType, void, JobName>) {
     this.logger.verbose(`Job with name: ${job.name}, id: ${job.id} success!`);
   }
 }
