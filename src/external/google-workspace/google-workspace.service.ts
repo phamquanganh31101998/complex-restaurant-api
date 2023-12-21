@@ -5,6 +5,10 @@ import { ConfigService } from '@nestjs/config';
 import { EnvKey } from 'shared/constants/env-key.constant';
 
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
+const enum MIME_TYPES {
+  FOLDER = 'application/vnd.google-apps.folder',
+  SPREADSHEET = 'application/vnd.google-apps.spreadsheet',
+}
 
 @Injectable()
 export class GoogleWorkspaceService {
@@ -57,7 +61,7 @@ export class GoogleWorkspaceService {
 
       const media = {
         mimeType: 'text/csv',
-        body: 'test test',
+        body: 'test\n\ntest',
       };
 
       const file = await service.files.create({

@@ -11,6 +11,7 @@ import { REDIS_CHECK_IN_PREFIX } from 'shared/constants/redis.constant';
 import { InjectRepository } from '@nestjs/typeorm';
 import { StaffCheckin } from 'storage/entities/Staff-Checkin.entity';
 import { Repository } from 'typeorm';
+import { GoogleWorkspaceService } from 'external/google-workspace/google-workspace.service';
 
 @Processor(QueueName.STAFF)
 export class AppProcessor extends WorkerHost {
@@ -20,6 +21,7 @@ export class AppProcessor extends WorkerHost {
     private redisService: RedisService,
     @InjectRepository(StaffCheckin)
     private staffCheckInRepository: Repository<StaffCheckin>,
+    private googleWorkspaceService: GoogleWorkspaceService,
   ) {
     super();
   }

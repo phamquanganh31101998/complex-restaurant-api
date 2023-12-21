@@ -6,6 +6,8 @@ import { RedisModule } from 'redis/redis.module';
 import { RedisService } from 'redis/redis.service';
 import { QueueName } from 'shared/constants/queue.constant';
 import { AppProcessor } from './app.processor';
+import { GoogleWorkspaceModule } from 'external/google-workspace/google-workspace.module';
+import { GoogleWorkspaceService } from 'external/google-workspace/google-workspace.service';
 
 @Module({
   imports: [
@@ -27,7 +29,8 @@ import { AppProcessor } from './app.processor';
       },
     }),
     BullModule.registerQueue({ name: QueueName.STAFF }),
+    GoogleWorkspaceModule,
   ],
-  providers: [AppProcessor],
+  providers: [AppProcessor, GoogleWorkspaceService],
 })
 export class AppModule {}
